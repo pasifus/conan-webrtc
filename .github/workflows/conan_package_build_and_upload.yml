@@ -48,27 +48,27 @@ jobs:
               options: "",
               env: "-e CC=/usr/bin/gcc -e CXX=/usr/bin/g++"
             }
-          # macos - x86_64 - clang
-          - os: [macos-12]
-            conan: {
-              settings: "-s os=Macos -s os.version=13.0 -s arch=x86_64 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
-              options: "",
-              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
-            }
-          # macos - armv8 - clang
-          - os: [macos-12]
-            conan: {
-              settings: "-s os=Macos -s os.version=13.0 -s arch=armv8 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
-              options: "",
-              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
-            }
-          # ios - armv8 - clang
-          - os: [macos-12]
-            conan: {
-              settings: "-s os=iOS -s os.version=16.0 -s os.sdk=iphoneos -s arch=armv8 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
-              options: "",
-              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
-            }
+          # # macos - x86_64 - clang
+          # - os: [macos-12]
+          #   conan: {
+          #     settings: "-s os=Macos -s os.version=13.0 -s arch=x86_64 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
+          #     options: "",
+          #     env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+          #   }
+          # # macos - armv8 - clang
+          # - os: [macos-12]
+          #   conan: {
+          #     settings: "-s os=Macos -s os.version=13.0 -s arch=armv8 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
+          #     options: "",
+          #     env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+          #   }
+          # # ios - armv8 - clang
+          # - os: [macos-12]
+          #   conan: {
+          #     settings: "-s os=iOS -s os.version=16.0 -s os.sdk=iphoneos -s arch=armv8 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
+          #     options: "",
+          #     env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+          #   }
 
     steps:
 
