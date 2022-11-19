@@ -34,13 +34,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # windows - x86_64 - vc
-          - os: [windows-2019]
-            conan: {
-              settings: "-s os=Windows -s arch=x86_64 -s arch_build=x86_64 -s compiler=\"Visual Studio\" -s compiler.version=16",
-              options: "",
-              env: ""
-            }
+          # # windows - x86_64 - vc
+          # - os: [windows-2019]
+          #   conan: {
+          #     settings: "-s os=Windows -s arch=x86_64 -s arch_build=x86_64 -s compiler=\"Visual Studio\" -s compiler.version=16",
+          #     options: "",
+          #     env: ""
+          #   }
           # linux - x86_64 - gcc
           - os: [ubuntu-20.04]
             conan: {
