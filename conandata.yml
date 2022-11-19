@@ -1,0 +1,12 @@
+sources:
+  "m107":
+    - branch: main
+      url: https://chromium.googlesource.com/chromium/tools/depot_tools.git
+    - branch: 5304
+      url: https://chromium.googlesource.com/external/webrtc
+patches:
+  "m107":
+    - patch_file: "patches/0001-windows_fix_towupper.patch"
+      base_path: "src"
+    - patch_file: "patches/0002-windows_fix_optional.patch"
+      base_path: "src"

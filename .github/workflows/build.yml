@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - "**"
+  push:
+    branches:
+      - master
+  release:
+    types:
+      - published
+
+jobs:
+
+  config:
+    name: Config config package
+    uses: ./.github/workflows/conan_package_config.yml
+
+  build:
+    name: Build
+    needs: config
+    uses: ./.github/workflows/conan_package_build_and_upload.yml
+    secrets: inherit
+    with:
+      package_name: "webrtc"
+      package_version: "m107"
+      package_channel: "stable"
+      package_upload: ${{ github.event.release.tag_name != '' }}

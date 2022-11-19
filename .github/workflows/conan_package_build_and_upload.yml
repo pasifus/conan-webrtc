@@ -1,0 +1,157 @@
+name: Conan package build and upload
+
+on:
+  workflow_call:
+    inputs:
+      package_clean_all:
+        description: 'Conan clean all packages before run'
+        type: boolean
+        required: false
+        default: true
+      package_name:
+        description: 'Conan package name'
+        type: string
+        required: true
+      package_version:
+        description: 'Conan package version'
+        type: string
+        required: true
+      package_channel:
+        description: 'Conan package channel'
+        type: string
+        required: true
+      package_upload:
+        description: 'Conan package upload'
+        type: boolean
+        required: false
+        default: false
+
+env:
+  CONAN_VERSION: 1.54.0
+  CONAN_SYSREQUIRES_MODE: enabled # system packages should be installed automatically
+  CONAN_SYSREQUIRES_SUDO: 1
+
+jobs:
+  conan:
+    name: ${{ matrix.os[0] }} / ${{ matrix.conan.settings }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # windows - x86_64 - vc
+          - os: [windows-2019]
+            conan: {
+              settings: "-s os=Windows -s arch=x86_64 -s arch_build=x86_64 -s compiler=\"Visual Studio\" -s compiler.version=16",
+              options: "",
+              env: ""
+            }
+          # linux - x86_64 - gcc
+          - os: [ubuntu-20.04]
+            conan: {
+              settings: "-s os=Linux -s arch=x86_64 -s arch_build=x86_64 -s compiler=\"gcc\" -s compiler.libcxx=libstdc++11 -s compiler.version=9.4",
+              options: "",
+              env: "-e CC=/usr/bin/gcc -e CXX=/usr/bin/g++"
+            }
+          # macos - x86_64 - clang
+          - os: [macos-12]
+            conan: {
+              settings: "-s os=Macos -s os.version=13.0 -s arch=x86_64 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
+              options: "",
+              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+            }
+          # macos - armv8 - clang
+          - os: [macos-12]
+            conan: {
+              settings: "-s os=Macos -s os.version=13.0 -s arch=armv8 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
+              options: "",
+              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+            }
+          # ios - armv8 - clang
+          - os: [macos-12]
+            conan: {
+              settings: "-s os=iOS -s os.version=16.0 -s os.sdk=iphoneos -s arch=armv8 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14 -s compiler.libcxx=libc++",
+              options: "",
+              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+            }
+
+    steps:
+
+      - name: Conan Create Full Package Name
+        id: conan
+        shell: bash
+        run: echo "full_package_name=${{ inputs.package_name }}/${{ inputs.package_version }}@${{ env.CONAN_PACKAGE_USER }}/${{ inputs.package_channel }}" >> $GITHUB_OUTPUT
+
+      - name: Conan Clean All Packages
+        if: ${{ inputs.package_clean_all }}
+        shell: bash
+        run: conan remove -f "*"
+
+      - name: Install linux dependencies
+        shell: bash
+        run: |
+          sudo apt-get install -y gcc g++
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 9
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 9
+
+      - name: Conan Install
+        shell: bash
+        run: |
+          if [[ MACOS ]]; then
+            brew install conan==${CONAN_VERSION}
+          else
+            pip3 install conan==${CONAN_VERSION}
+            conan --version
+            echo "${HOME}/.local/bin" >> $GITHUB_PATH
+          endif
+          
+      - name: Conan Configure
+        shell: bash
+        run: |
+          #if [ "$(conan --version)" != "Conan version ${{ env.CONAN_VERSION }}" ]; then echo "Failed $(conan --version)"; exit -1; fi
+          conan config set general.revisions_enabled=1
+          conan profile new default --detect --force
+          conan profile show default
+
+      - name: Check Out Code
+        uses: actions/checkout@v3
+
+      - name: Conan Build [Release]
+        shell: bash
+        run: |
+          conan create . ${{ steps.conan.outputs.full_package_name }} \
+            -s build_type=Release \
+            ${{ matrix.conan.settings }} \
+            ${{ matrix.conan.env }} \
+            ${{ matrix.conan.options }} \
+            ${{ inputs.package_extra_args }}
+
+      - name: Conan Build [Debug]
+        shell: bash
+        run: |
+          conan create . ${{ steps.conan.outputs.full_package_name }} \
+            -s build_type=Debug \
+            ${{ matrix.conan.settings }} \
+            ${{ matrix.conan.env }} \
+            ${{ matrix.conan.options }} \
+            ${{ inputs.package_extra_args }}
+
+      - name: Conan Build [RelWithDebInfo]
+        if: ${{ startsWith(matrix.os[0], 'Windows') }}
+        shell: bash
+        run: |
+          conan create . ${{ steps.conan.outputs.full_package_name }} \
+            -s build_type=RelWithDebInfo \
+            ${{ matrix.conan.settings }} \
+            ${{ matrix.conan.env }} \
+            ${{ matrix.conan.options }} \
+            ${{ inputs.package_extra_args }}
+
+      - name: Conan Upload
+        if: ${{ inputs.package_upload }}
+        shell: bash
+        run: |
+          conan upload ${{ steps.conan.outputs.full_package_name }} \
+            --remote ${CONAN_REMOTE_NAME} \
+            --all \
+            --parallel
