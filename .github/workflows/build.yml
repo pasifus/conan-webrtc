@@ -13,10 +13,6 @@ on:
 
 jobs:
 
-  config:
-    name: Config config package
-    uses: ./.github/workflows/conan_package_config.yml
-
   build:
     name: Build
     needs: config
