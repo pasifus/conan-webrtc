@@ -15,7 +15,6 @@ jobs:
 
   build:
     name: Build
-    needs: config
     uses: ./.github/workflows/conan_package_build_and_upload.yml
     secrets: inherit
     with:
