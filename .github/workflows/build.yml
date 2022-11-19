@@ -20,5 +20,4 @@ jobs:
     with:
       package_name: "webrtc"
       package_version: "m107"
-      package_channel: "stable"
       package_upload: ${{ github.event.release.tag_name != '' }}

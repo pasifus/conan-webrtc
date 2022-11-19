@@ -16,10 +16,6 @@ on:
         description: 'Conan package version'
         type: string
         required: true
-      package_channel:
-        description: 'Conan package channel'
-        type: string
-        required: true
       package_upload:
         description: 'Conan package upload'
         type: boolean
@@ -79,7 +75,7 @@ jobs:
       - name: Conan Create Full Package Name
         id: conan
         shell: bash
-        run: echo "full_package_name=${{ inputs.package_name }}/${{ inputs.package_version }}@${{ env.CONAN_PACKAGE_USER }}/${{ inputs.package_channel }}" >> $GITHUB_OUTPUT
+        run: echo "full_package_name=${{ inputs.package_name }}/${{ inputs.package_version }}" >> $GITHUB_OUTPUT
 
       - name: Install linux dependencies
         if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
