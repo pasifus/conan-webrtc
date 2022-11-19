@@ -27,7 +27,6 @@ on:
         default: false
 
 env:
-  CONAN_VERSION: 1.54.0
   CONAN_SYSREQUIRES_MODE: enabled # system packages should be installed automatically
   CONAN_SYSREQUIRES_SUDO: 1
 
@@ -92,18 +91,18 @@ jobs:
       - name: Conan Install
         shell: bash
         run: |
-          if [[ MACOS ]]; then
-            brew install conan==${CONAN_VERSION}
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            brew install conan cmake
           else
-            pip3 install conan==${CONAN_VERSION}
-            conan --version
+            pip3 install conan cmake
             echo "${HOME}/.local/bin" >> $GITHUB_PATH
-          endif
+          fi
+          conan --version
+          cmake --version
           
       - name: Conan Configure
         shell: bash
         run: |
-          #if [ "$(conan --version)" != "Conan version ${{ env.CONAN_VERSION }}" ]; then echo "Failed $(conan --version)"; exit -1; fi
           conan config set general.revisions_enabled=1
           conan profile new default --detect --force
           conan profile show default
@@ -112,7 +111,6 @@ jobs:
         if: ${{ inputs.package_clean_all }}
         shell: bash
         run: conan remove -f "*"
-
 
       - name: Check Out Code
         uses: actions/checkout@v3
