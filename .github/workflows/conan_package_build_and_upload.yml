@@ -75,7 +75,7 @@ jobs:
       - name: Conan Create Full Package Name
         id: conan
         shell: bash
-        run: echo "full_package_name=${{ inputs.package_name }}/${{ inputs.package_version }}" >> $GITHUB_OUTPUT
+        run: echo "full_package_name=${{ inputs.package_name }}/${{ inputs.package_version }}@" >> $GITHUB_OUTPUT
 
       - name: Install linux dependencies
         if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
