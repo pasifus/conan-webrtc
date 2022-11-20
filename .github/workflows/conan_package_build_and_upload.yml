@@ -158,6 +158,7 @@ jobs:
         run: |
           df -h
           conan remove -f "*"
+          df -h
 
       - name: Conan Build [Debug]
         shell: bash
