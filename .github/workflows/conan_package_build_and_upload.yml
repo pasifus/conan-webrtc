@@ -72,6 +72,36 @@ jobs:
 
     steps:
 
+      - name: Disk Cleanup (matrix.os[0])
+        if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
+        run: |
+          df -h
+          docker rmi `docker images -q -a`
+          # 3.9GB
+          sudo rm -rf /usr/local/share/boost
+          # 17GB
+          sudo rm -rf /usr/share/dotnet
+          df -h
+
+      - name: Disk Cleanup
+        if: ${{ startsWith(matrix.os[0], 'windows') }}
+        run: |
+          Get-PSDrive
+          docker rmi $(docker images -q -a)
+          if ($Env:ANDROID_HOME) {
+            Remove-Item -Recurse -Force $Env:ANDROID_HOME -ErrorAction Ignore
+          }
+          if ($Env:ANDROID_NDK_HOME) {
+            Remove-Item -Recurse -Force $Env:ANDROID_NDK_HOME -ErrorAction Ignore
+          }
+          if ($Env:JAVA_HOME_11_X64) {
+            Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64 -ErrorAction Ignore
+          }
+          if ($Env:JAVA_HOME_8_X64) {
+            Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
+          }
+          Get-PSDrive
+        
       - name: Conan Create Full Package Name
         id: conan
         shell: bash
