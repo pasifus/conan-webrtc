@@ -81,7 +81,12 @@ jobs:
           sudo rm -rf /usr/local/share/boost
           # 17GB
           sudo rm -rf /usr/share/dotnet
-          df -h
+          #  41G
+          sudo apt-get clean
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"          
 
       - name: Disk Cleanup
         if: ${{ startsWith(matrix.os[0], 'windows') }}
@@ -152,13 +157,13 @@ jobs:
             ${{ matrix.conan.options }} \
             ${{ inputs.package_extra_args }}
 
-      # HACK: it's no space on disk
-      - name: Disk Cleanup
-        if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
-        run: |
-          df -h
-          conan remove -f "*"
-          df -h
+      # # HACK: it's no space on disk
+      # - name: Disk Cleanup
+      #   if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
+      #   run: |
+      #     df -h
+      #     conan remove -f "*"
+      #     df -h
 
       - name: Conan Build [Debug]
         shell: bash
