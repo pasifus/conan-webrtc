@@ -72,7 +72,7 @@ jobs:
 
     steps:
 
-      - name: Disk Cleanup (matrix.os[0])
+      - name: Disk Cleanup
         if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
         run: |
           df -h
@@ -151,6 +151,13 @@ jobs:
             ${{ matrix.conan.env }} \
             ${{ matrix.conan.options }} \
             ${{ inputs.package_extra_args }}
+
+      # HACK: it's no space on disk
+      - name: Disk Cleanup
+        if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
+        run: |
+          df -h
+          conan remove -f "*"
 
       - name: Conan Build [Debug]
         shell: bash
