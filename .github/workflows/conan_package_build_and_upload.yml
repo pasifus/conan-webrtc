@@ -77,16 +77,21 @@ jobs:
         run: |
           df -h
           docker rmi `docker images -q -a`
+          df -h
           # 3.9GB
           sudo rm -rf /usr/local/share/boost
+          df -h
           # 17GB
           sudo rm -rf /usr/share/dotnet
+          df -h
+          # 10 GB
+          sudo rm -rf /usr/local/lib/android
+          df -h
           #  41G
           sudo apt-get clean
-          sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"          
+          sudo rm -rf $AGENT_TOOLSDIRECTORY
+          df -h
 
       - name: Disk Cleanup
         if: ${{ startsWith(matrix.os[0], 'windows') }}
