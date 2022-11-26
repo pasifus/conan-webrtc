@@ -1,0 +1,20 @@
+# OS
+.DS_Store
+
+# VisualStudioCode
+.vscode/*
+
+# ide's
+.idea
+.vscode
+
+# python
+venv/*
+
+# build
+build*/
+cmake-build-*
+out
+.vs/
+
+# generated

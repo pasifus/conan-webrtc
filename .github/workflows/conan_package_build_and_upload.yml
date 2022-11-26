@@ -1,0 +1,201 @@
+name: Conan package build and upload
+
+on:
+  workflow_call:
+    inputs:
+      package_clean_all:
+        description: 'Conan clean all packages before run'
+        type: boolean
+        required: false
+        default: true
+      package_name:
+        description: 'Conan package name'
+        type: string
+        required: true
+      package_version:
+        description: 'Conan package version'
+        type: string
+        required: true
+      package_upload:
+        description: 'Conan package upload'
+        type: boolean
+        required: false
+        default: false
+
+env:
+  CONAN_SYSREQUIRES_MODE: enabled # system packages should be installed automatically
+  CONAN_SYSREQUIRES_SUDO: 1
+
+jobs:
+  conan:
+    name: ${{ matrix.os[0] }} / ${{ matrix.conan.settings }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # windows - x86_64 - vc
+          - os: [windows-2019]
+            conan: {
+              settings: "-s os=Windows -s arch=x86_64 -s arch_build=x86_64 -s compiler=\"Visual Studio\" -s compiler.version=16 -s compiler.cppstd=17",
+              options: "",
+              env: ""
+            }
+          # linux - x86_64 - gcc
+          - os: [ubuntu-20.04]
+            conan: {
+              settings: "-s os=Linux -s arch=x86_64 -s arch_build=x86_64 -s compiler=\"gcc\" -s compiler.libcxx=libstdc++11 -s compiler.version=9.4 -s compiler.cppstd=17",
+              options: "",
+              env: "-e CC=/usr/bin/gcc -e CXX=/usr/bin/g++"
+            }
+          # macos - x86_64 - clang
+          - os: [macos-12]
+            conan: {
+              settings: "-s os=Macos -s os.version=13.0 -s arch=x86_64 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14.0 -s compiler.libcxx=libc++ -s compiler.cppstd=17",
+              options: "",
+              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+            }
+          # macos - armv8 - clang
+          - os: [macos-12]
+            conan: {
+              settings: "-s os=Macos -s os.version=13.0 -s arch=armv8 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14.0 -s compiler.libcxx=libc++ -s compiler.cppstd=17",
+              options: "",
+              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+            }
+          # ios - armv8 - clang
+          - os: [macos-12]
+            conan: {
+              settings: "-s os=iOS -s os.version=16.0 -s os.sdk=iphoneos -s arch=armv8 -s arch_build=armv8 -s compiler=\"apple-clang\" -s compiler.version=14.0 -s compiler.libcxx=libc++ -s compiler.cppstd=17",
+              options: "",
+              env: "-e CC=/usr/bin/clang -e CXX=/usr/bin/clang++"
+            }
+
+    steps:
+
+      - name: Disk Cleanup
+        if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
+        run: |
+          df -h
+          docker rmi `docker images -q -a`
+          df -h
+          # 3.9GB
+          sudo rm -rf /usr/local/share/boost
+          df -h
+          # 17GB
+          sudo rm -rf /usr/share/dotnet
+          df -h
+          # 10 GB
+          sudo rm -rf /usr/local/lib/android
+          df -h
+          #  41G
+          sudo apt-get clean
+          sudo rm -rf /opt/ghc
+          sudo rm -rf $AGENT_TOOLSDIRECTORY
+          df -h
+
+      - name: Disk Cleanup
+        if: ${{ startsWith(matrix.os[0], 'windows') }}
+        run: |
+          Get-PSDrive
+          docker rmi $(docker images -q -a)
+          if ($Env:ANDROID_HOME) {
+            Remove-Item -Recurse -Force $Env:ANDROID_HOME -ErrorAction Ignore
+          }
+          if ($Env:ANDROID_NDK_HOME) {
+            Remove-Item -Recurse -Force $Env:ANDROID_NDK_HOME -ErrorAction Ignore
+          }
+          if ($Env:JAVA_HOME_11_X64) {
+            Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64 -ErrorAction Ignore
+          }
+          if ($Env:JAVA_HOME_8_X64) {
+            Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
+          }
+          Get-PSDrive
+        
+      - name: Conan Create Full Package Name
+        id: conan
+        shell: bash
+        run: echo "full_package_name=${{ inputs.package_name }}/${{ inputs.package_version }}@" >> $GITHUB_OUTPUT
+
+      - name: Install linux dependencies
+        if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
+        shell: bash
+        run: |
+          sudo apt-get install -y gcc g++
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 9
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 9
+
+      - name: Conan Install
+        shell: bash
+        run: |
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            brew install conan cmake
+          else
+            pip3 install conan cmake
+            echo "${HOME}/.local/bin" >> $GITHUB_PATH
+          fi
+          conan --version
+          cmake --version
+          
+      - name: Conan Configure
+        shell: bash
+        run: |
+          conan config set general.revisions_enabled=1
+          conan profile new default --detect --force
+          conan profile show default
+
+      - name: Conan Clean All Packages
+        if: ${{ inputs.package_clean_all }}
+        shell: bash
+        run: conan remove -f "*"
+
+      - name: Check Out Code
+        uses: actions/checkout@v3
+
+      - name: Conan Build [Release]
+        shell: bash
+        run: |
+          conan create . ${{ steps.conan.outputs.full_package_name }} \
+            -s build_type=Release \
+            ${{ matrix.conan.settings }} \
+            ${{ matrix.conan.env }} \
+            ${{ matrix.conan.options }} \
+            ${{ inputs.package_extra_args }}
+
+      # # HACK: it's no space on disk
+      # - name: Disk Cleanup
+      #   if: ${{ startsWith(matrix.os[0], 'ubuntu') }}
+      #   run: |
+      #     df -h
+      #     conan remove -f "*"
+      #     df -h
+
+      - name: Conan Build [Debug]
+        shell: bash
+        run: |
+          conan create . ${{ steps.conan.outputs.full_package_name }} \
+            -s build_type=Debug \
+            ${{ matrix.conan.settings }} \
+            ${{ matrix.conan.env }} \
+            ${{ matrix.conan.options }} \
+            ${{ inputs.package_extra_args }}
+
+      - name: Conan Build [RelWithDebInfo]
+        if: ${{ startsWith(matrix.os[0], 'windows') }}
+        shell: bash
+        run: |
+          conan create . ${{ steps.conan.outputs.full_package_name }} \
+            -s build_type=RelWithDebInfo \
+            ${{ matrix.conan.settings }} \
+            ${{ matrix.conan.env }} \
+            ${{ matrix.conan.options }} \
+            ${{ inputs.package_extra_args }}
+
+      - name: Conan Upload
+        if: ${{ inputs.package_upload }}
+        shell: bash
+        run: |
+          conan upload ${{ steps.conan.outputs.full_package_name }} \
+            --remote ${CONAN_REMOTE_NAME} \
+            --all \
+            --parallel
